@@ -16,20 +16,27 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun Ecra01() {
     Column(modifier = Modifier.fillMaxSize().wrapContentSize(Alignment.Center)) {
-        Text(text = stringResource(id = R.string.ecra01),
-            fontWeight = FontWeight.Bold, color = Color.Gray,
+        Text(
+            text = "Lista de Itens",
+            fontWeight = FontWeight.Bold,
+            color = Color.Gray,
             modifier = Modifier.align(Alignment.CenterHorizontally),
-            textAlign = TextAlign.Center, fontSize = 18.sp
+            textAlign = TextAlign.Center,
+            fontSize = 18.sp
         )
     }
 }
+
 @Composable
 fun Ecra02() {
     Column(modifier = Modifier.fillMaxSize().wrapContentSize(Alignment.Center)) {
-        Text(text = stringResource(id = R.string.ecra02),
-            fontWeight = FontWeight.Bold, color = Color.Gray,
+        Text(
+            text = "Criar Novo Item",
+            fontWeight = FontWeight.Bold,
+            color = Color.Gray,
             modifier = Modifier.align(Alignment.CenterHorizontally),
-            textAlign = TextAlign.Center, fontSize = 18.sp
+            textAlign = TextAlign.Center,
+            fontSize = 18.sp
         )
     }
 }
