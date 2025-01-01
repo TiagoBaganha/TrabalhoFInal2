@@ -45,7 +45,7 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
-                    NavHost(navController = navController, startDestination = "login") {
+                    NavHost(navController = navController, startDestination = "ecra02") {
                         composable("login") {
                             LoginScreen(
                                 onLoginSuccess = {
@@ -73,130 +73,11 @@ class MainActivity : ComponentActivity() {
                         }*/
                         // Add routes for Ecra01 and Ecra02
                         composable("ecra01") {
-                            Column(
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .weight(1f)
-                                        .wrapContentSize(Alignment.Center)
-                                ) {
-                                    Text(
-                                        text = "Lista de Itens",
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.Gray,
-                                        modifier = Modifier.align(Alignment.CenterHorizontally),
-                                        textAlign = TextAlign.Center,
-                                        fontSize = 18.sp
-                                    )
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                }
-                                BottomNavigationBar(navController, appItems = Destino.toList)
-                            }
+                            Ecra01(navController)
                         }
-
                         composable("ecra02") {
-
-                            var nomeDaLista by remember { mutableStateOf("") }
-                            var nomeDoProduto by remember { mutableStateOf("") }
-                            var quantidade by remember { mutableStateOf("") }
-
-                            Scaffold(
-                                modifier = Modifier.fillMaxSize(),
-                                bottomBar = {
-                                    // BottomNavigationBar no final do ecrã
-                                    BottomNavigationBar(navController, appItems = Destino.toList)
-                                }
-                            ) { paddingValues ->
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(paddingValues) // Para garantir que o conteúdo não sobreponha o BottomBar
-                                ) {
-                                    // Nome da Lista no topo do ecrã
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(16.dp)
-                                    ) {
-                                        Text(
-                                            text = "Nome da Lista:",
-                                            fontWeight = FontWeight.Normal,
-                                            color = Color.Black,
-                                            fontSize = 16.sp
-                                        )
-                                        TextField(
-                                            value = nomeDaLista,
-                                            onValueChange = { nomeDaLista = it },
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
-                                    }
-
-                                    Spacer(modifier = Modifier.height(16.dp))
-
-                                    // Tabela para Nome do Produto e Quantidade
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(16.dp)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween
-                                        ) {
-                                            Text(
-                                                text = "Nome do Produto:",
-                                                fontWeight = FontWeight.Normal,
-                                                color = Color.Black,
-                                                fontSize = 16.sp
-                                            )
-                                            Text(
-                                                text = "Quantidade:",
-                                                fontWeight = FontWeight.Normal,
-                                                color = Color.Black,
-                                                fontSize = 16.sp
-                                            )
-                                        }
-
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween
-                                        ) {
-                                            TextField(
-                                                value = nomeDoProduto,
-                                                onValueChange = { nomeDoProduto = it },
-                                                modifier = Modifier.weight(1f).padding(end = 8.dp)
-                                            )
-                                            TextField(
-                                                value = quantidade,
-                                                onValueChange = { quantidade = it },
-                                                modifier = Modifier.weight(1f).padding(start = 8.dp)
-                                            )
-                                        }
-
-                                        Spacer(modifier = Modifier.height(16.dp))
-
-                                        // Botão de Acrescentar abaixo dos campos
-                                        Button(
-                                            onClick = {
-                                                // Ação do botão
-                                                // Aqui você pode acessar os valores de nomeDaLista, nomeDoProduto e quantidade
-                                            },
-                                            modifier = Modifier.align(Alignment.CenterHorizontally)
-                                        ) {
-                                            Text(text = "Acrescentar")
-                                        }
-                                    }
-                                }
-                            }
+                            Ecra02(navController)
                         }
-
-
-
-
-
-
 
 
 
@@ -381,6 +262,8 @@ fun LoginScreen(
     }
 }
 
+
+
 /*@Composable
 fun ProgramaPrincipal(navController: NavHostController) {
     Scaffold(
@@ -444,6 +327,7 @@ fun BottomNavigationBar(navController: NavController, appItems: List<Destino>) {
         }
     }
 }
+
 
 
 
