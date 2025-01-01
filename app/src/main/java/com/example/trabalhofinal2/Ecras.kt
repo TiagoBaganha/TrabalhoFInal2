@@ -1,13 +1,17 @@
 package com.example.trabalhofinal2
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -33,7 +37,9 @@ import androidx.navigation.NavController
 
 
 @Composable
-fun Ecra01(navController: NavController) {
+fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
+    val listas = listasViewModel.listas
+
     Scaffold(
         bottomBar = { BottomNavigationBar(navController, appItems = Destino.toList) }
     ) { paddingValues ->
@@ -41,101 +47,199 @@ fun Ecra01(navController: NavController) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
-            verticalArrangement = Arrangement.Center,
+            verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Lista de Itens",
+                text = "Listas Criadas",
                 fontWeight = FontWeight.Bold,
                 color = Color.Gray,
-                fontSize = 18.sp
+                fontSize = 18.sp,
+                modifier = Modifier.padding(top = 16.dp)
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(listas) { lista ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color.LightGray)
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = lista,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 16.sp,
+                            color = Color.Black,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        Button(
+                            onClick = {
+                                listasViewModel.removerLista(lista)
+                            },
+                            contentPadding = PaddingValues(0.dp),
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Text(text = "X", color = Color.White)
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
-@Composable
-fun Ecra02(navController: NavController) {
 
+@Composable
+fun Ecra02(navController: NavController, listasViewModel: ListasViewModel) {
     var nomeDaLista by remember { mutableStateOf("") }
     var nomeDoProduto by remember { mutableStateOf("") }
     var quantidade by remember { mutableStateOf("") }
     val itens = remember { mutableStateListOf<Pair<String, String>>() }
 
     Scaffold(
-        bottomBar = { BottomNavigationBar(navController, appItems = Destino.toList) }
+        modifier = Modifier.fillMaxSize(),
+        bottomBar = {
+            BottomNavigationBar(navController, appItems = Destino.toList)
+        }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
         ) {
-            // Campo para Nome da Lista
-            Text("Nome da Lista:", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            TextField(
-                value = nomeDaLista,
-                onValueChange = { nomeDaLista = it },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Campo para Nome do Produto e Quantidade
-            Text("Itens:", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                TextField(
-                    value = nomeDoProduto,
-                    onValueChange = { nomeDoProduto = it },
-                    label = { Text("Nome do Produto") },
-                    modifier = Modifier.weight(1f).padding(end = 8.dp)
-                )
-                TextField(
-                    value = quantidade,
-                    onValueChange = { quantidade = it },
-                    label = { Text("Quantidade") },
-                    modifier = Modifier.weight(1f).padding(start = 8.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Botões para Acrescentar Item e Lista
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
             ) {
-                Button(onClick = {
-                    if (nomeDoProduto.isNotBlank() && quantidade.isNotBlank()) {
-                        itens.add(Pair(nomeDoProduto, quantidade))
-                        nomeDoProduto = ""
-                        quantidade = ""
-                    }
-                }) {
-                    Text("Acrescentar Item")
+                Text(
+                    text = "Nome da Lista:",
+                    fontWeight = FontWeight.Normal,
+                    color = Color.Black,
+                    fontSize = 16.sp
+                )
+                TextField(
+                    value = nomeDaLista,
+                    onValueChange = { nomeDaLista = it },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Nome do Produto e Quantidade
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    TextField(
+                        value = nomeDoProduto,
+                        onValueChange = { nomeDoProduto = it },
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 8.dp)
+                    )
+                    TextField(
+                        value = quantidade,
+                        onValueChange = { quantidade = it },
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 8.dp)
+                    )
                 }
-                Button(onClick = {
-                    // Ação para criar uma nova lista
-                }) {
-                    Text("Acrescentar Lista")
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Button(
+                        onClick = {
+                            if (nomeDoProduto.isNotBlank() && quantidade.isNotBlank()) {
+                                itens.add(nomeDoProduto to quantidade)
+                                nomeDoProduto = ""
+                                quantidade = ""
+                            }
+                        }
+                    ) {
+                        Text(text = "Acrescentar Item")
+                    }
+
+                    Button(
+                        onClick = {
+                            if (nomeDaLista.isNotBlank() && itens.isNotEmpty()) {
+                                listasViewModel.adicionarLista(nomeDaLista)
+                                nomeDaLista = ""
+                                itens.clear()
+                            }
+                        }
+                    ) {
+                        Text(text = "Acrescentar Lista")
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Exibição da Lista
-            Text("Itens Adicionados:", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            LazyColumn {
-                items(itens) { item ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "Itens na Lista:",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Color.Black
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                itens.forEachIndexed { index, item ->
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(text = item.first)
-                        Text(text = item.second)
+                        Text(
+                            text = "${item.first} - ${item.second}",
+                            fontSize = 16.sp,
+                            color = Color.Black,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Button(
+                            onClick = {
+                                itens.removeAt(index)
+                            },
+                            contentPadding = PaddingValues(0.dp),
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Text(text = "X", color = Color.White)
+                        }
                     }
                 }
             }
         }
     }
 }
+
+

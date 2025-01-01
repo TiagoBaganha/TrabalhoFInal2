@@ -33,6 +33,7 @@ import com.google.firebase.auth.FirebaseAuth
 
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 
 class MainActivity : ComponentActivity() {
@@ -45,6 +46,7 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
+                    val listasViewModel: ListasViewModel = viewModel() // Inicializa o ViewModel.
                     NavHost(navController = navController, startDestination = "ecra02") {
                         composable("login") {
                             LoginScreen(
@@ -73,10 +75,10 @@ class MainActivity : ComponentActivity() {
                         }*/
                         // Add routes for Ecra01 and Ecra02
                         composable("ecra01") {
-                            Ecra01(navController)
+                            Ecra01(navController, listasViewModel)
                         }
                         composable("ecra02") {
-                            Ecra02(navController)
+                            Ecra02(navController, listasViewModel)
                         }
 
 
