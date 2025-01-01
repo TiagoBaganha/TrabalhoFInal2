@@ -117,6 +117,7 @@ fun Ecra02(navController: NavController, listasViewModel: ListasViewModel) {
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            // Nome da Lista
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -138,65 +139,82 @@ fun Ecra02(navController: NavController, listasViewModel: ListasViewModel) {
             Spacer(modifier = Modifier.height(16.dp))
 
             // Nome do Produto e Quantidade
-            Column(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
+                // Nome do Produto
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Nome Produto:",
+                        fontWeight = FontWeight.Normal,
+                        color = Color.Black,
+                        fontSize = 16.sp
+                    )
                     TextField(
                         value = nomeDoProduto,
                         onValueChange = { nomeDoProduto = it },
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(end = 8.dp)
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(16.dp)) // Espaço entre os campos
+
+                // Quantidade
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Quantidade:",
+                        fontWeight = FontWeight.Normal,
+                        color = Color.Black,
+                        fontSize = 16.sp
                     )
                     TextField(
                         value = quantidade,
                         onValueChange = { quantidade = it },
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(start = 8.dp)
+                        modifier = Modifier.fillMaxWidth()
                     )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    Button(
-                        onClick = {
-                            if (nomeDoProduto.isNotBlank() && quantidade.isNotBlank()) {
-                                itens.add(nomeDoProduto to quantidade)
-                                nomeDoProduto = ""
-                                quantidade = ""
-                            }
-                        }
-                    ) {
-                        Text(text = "Acrescentar Item")
-                    }
-
-                    Button(
-                        onClick = {
-                            if (nomeDaLista.isNotBlank() && itens.isNotEmpty()) {
-                                listasViewModel.adicionarLista(nomeDaLista)
-                                nomeDaLista = ""
-                                itens.clear()
-                            }
-                        }
-                    ) {
-                        Text(text = "Acrescentar Lista")
-                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Botões: Acrescentar Item e Acrescentar Lista
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Button(
+                    onClick = {
+                        if (nomeDoProduto.isNotBlank() && quantidade.isNotBlank()) {
+                            itens.add(nomeDoProduto to quantidade)
+                            nomeDoProduto = ""
+                            quantidade = ""
+                        }
+                    }
+                ) {
+                    Text(text = "Acrescentar Item")
+                }
+
+                Button(
+                    onClick = {
+                        if (nomeDaLista.isNotBlank() && itens.isNotEmpty()) {
+                            listasViewModel.adicionarLista(nomeDaLista)
+                            nomeDaLista = ""
+                            itens.clear()
+                        }
+                    }
+                ) {
+                    Text(text = "Acrescentar Lista")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Exibir itens na lista
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -241,5 +259,7 @@ fun Ecra02(navController: NavController, listasViewModel: ListasViewModel) {
         }
     }
 }
+
+
 
 
