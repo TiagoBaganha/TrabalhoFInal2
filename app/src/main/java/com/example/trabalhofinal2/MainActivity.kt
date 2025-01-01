@@ -75,10 +75,14 @@ class MainActivity : ComponentActivity() {
                         }*/
                         // Add routes for Ecra01 and Ecra02
                         composable("ecra01") {
-                            Ecra01(navController, listasViewModel)
+                            Ecra01(navController = navController, listasViewModel = listasViewModel)
                         }
                         composable("ecra02") {
                             Ecra02(navController, listasViewModel)
+                        }
+                        composable("ecra03/{listaNome}") { backStackEntry ->
+                            val listaNome = backStackEntry.arguments?.getString("listaNome") ?: ""
+                            Ecra03(navController, listasViewModel, listaNome)
                         }
 
 

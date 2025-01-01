@@ -1,6 +1,7 @@
 package com.example.trabalhofinal2
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -84,6 +85,17 @@ fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
 
                         Button(
                             onClick = {
+                                navController.navigate("ecra03/${lista}")  // Navega para o Ecra03 passando o nome da lista
+                            },
+                            contentPadding = PaddingValues(0.dp),
+                            modifier = Modifier
+                                .width(80.dp)
+                                .height(40.dp)
+                        ) {
+                            Text(text = "Editar", color = Color.White)
+                        }
+                        Button(
+                            onClick = {
                                 listasViewModel.removerLista(lista)
                             },
                             contentPadding = PaddingValues(0.dp),
@@ -94,9 +106,12 @@ fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
                     }
                 }
             }
+
+        }
         }
     }
-}
+
+
 
 
 @Composable
@@ -247,6 +262,157 @@ fun Ecra02(navController: NavController, listasViewModel: ListasViewModel) {
                         Button(
                             onClick = {
                                 itens.removeAt(index)
+                            },
+                            contentPadding = PaddingValues(0.dp),
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Text(text = "X", color = Color.White)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, listaNome: String) {
+    // Recuperar a lista de itens da lista específica
+    val listaItems = listasViewModel.obterItensDaLista(listaNome).toMutableList()
+
+    var nomeDoProduto by remember { mutableStateOf("") }
+    var quantidade by remember { mutableStateOf("") }
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        bottomBar = { BottomNavigationBar(navController, appItems = Destino.toList) }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            // Título da tela
+            Text(
+                text = "Editar Lista: $listaNome",
+                fontWeight = FontWeight.Bold,
+                color = Color.Black,
+                fontSize = 18.sp,
+                modifier = Modifier.padding(16.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Nome do Produto e Quantidade
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // Nome do Produto
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Nome Produto:",
+                        fontWeight = FontWeight.Normal,
+                        color = Color.Black,
+                        fontSize = 16.sp
+                    )
+                    TextField(
+                        value = nomeDoProduto,
+                        onValueChange = { nomeDoProduto = it },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(16.dp)) // Espaço entre os campos
+
+                // Quantidade
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Quantidade:",
+                        fontWeight = FontWeight.Normal,
+                        color = Color.Black,
+                        fontSize = 16.sp
+                    )
+                    TextField(
+                        value = quantidade,
+                        onValueChange = { quantidade = it },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Botões: Acrescentar Item e Salvar Lista
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Button(
+                    onClick = {
+                        if (nomeDoProduto.isNotBlank() && quantidade.isNotBlank()) {
+                            val novoItem = nomeDoProduto to quantidade
+                            listasViewModel.adicionarItemNaLista(listaNome, novoItem)
+                            nomeDoProduto = ""
+                            quantidade = ""
+                        }
+                    }
+                ) {
+                    Text(text = "Acrescentar Item")
+                }
+
+                Button(
+                    onClick = {
+                        // Atualiza os itens da lista
+                        listasViewModel.atualizarLista(listaNome, listaItems)
+                        navController.popBackStack() // Volta para a tela anterior
+                    }
+                ) {
+                    Text(text = "Salvar Lista")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Exibir itens na lista
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "Itens na Lista:",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Color.Black
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                listaItems.forEachIndexed { index, item ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "${item.first} - ${item.second}",
+                            fontSize = 16.sp,
+                            color = Color.Black,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Button(
+                            onClick = {
+                                // Remove o item
+                                listasViewModel.removerItemDaLista(listaNome, item)
+                                listaItems.removeAt(index)
                             },
                             contentPadding = PaddingValues(0.dp),
                             modifier = Modifier.size(24.dp)
