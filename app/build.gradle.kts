@@ -61,6 +61,8 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.datastore.preferences.core.jvm)
+    implementation(libs.firebase.firestore.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -75,9 +77,18 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
 // Also add the dependency for the Google Play services library and specify its version
     implementation("com.google.android.gms:play-services-auth:21.0.0")
-    
+    //Dependency for DataStore
+    implementation ("androidx.datastore:datastore-preferences:1.0.0")
+    implementation ("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.0")
+    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
+    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.0")
+
+
+
     val nav_version = "2.8.2"
     implementation("androidx.navigation:navigation-compose:$nav_version")
     val compose_material_version = "1.7.3"
     implementation("androidx.compose.material:material:$compose_material_version") // necessário para se poder usar a BottomNavigation
+
+
 }

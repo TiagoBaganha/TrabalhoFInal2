@@ -108,8 +108,8 @@ fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
             }
 
         }
-        }
     }
+}
 
 
 
@@ -217,7 +217,7 @@ fun Ecra02(navController: NavController, listasViewModel: ListasViewModel) {
                 Button(
                     onClick = {
                         if (nomeDaLista.isNotBlank() && itens.isNotEmpty()) {
-                            listasViewModel.adicionarLista(nomeDaLista)
+                            listasViewModel.adicionarLista(nomeDaLista, itens.toList())
                             nomeDaLista = ""
                             itens.clear()
                         }
@@ -278,13 +278,40 @@ fun Ecra02(navController: NavController, listasViewModel: ListasViewModel) {
 @Composable
 fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, listaNome: String) {
     // Recuperar a lista de itens da lista específica
-    val listaItems = listasViewModel.obterItensDaLista(listaNome).toMutableList()
+    val listaItems = remember {
+        mutableStateListOf<Pair<String, String>>().apply {
+            addAll(listasViewModel.obterItensDaLista(listaNome))
+        }
+    }
 
     var nomeDoProduto by remember { mutableStateOf("") }
     var quantidade by remember { mutableStateOf("") }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
+        topBar = {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Editar Lista: $listaNome",
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                    fontSize = 18.sp
+                )
+                Button(
+                    onClick = { navController.navigate("ecra01") },
+                    contentPadding = PaddingValues(0.dp),
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Text(text = "←", fontSize = 20.sp)
+                }
+            }
+        },
         bottomBar = { BottomNavigationBar(navController, appItems = Destino.toList) }
     ) { paddingValues ->
         Column(
@@ -292,15 +319,6 @@ fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, lista
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Título da tela
-            Text(
-                text = "Editar Lista: $listaNome",
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
-                fontSize = 18.sp,
-                modifier = Modifier.padding(16.dp)
-            )
-
             Spacer(modifier = Modifier.height(16.dp))
 
             // Nome do Produto e Quantidade
@@ -325,7 +343,7 @@ fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, lista
                     )
                 }
 
-                Spacer(modifier = Modifier.width(16.dp)) // Espaço entre os campos
+                Spacer(modifier = Modifier.width(16.dp))
 
                 // Quantidade
                 Column(modifier = Modifier.weight(1f)) {
@@ -355,8 +373,12 @@ fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, lista
                 Button(
                     onClick = {
                         if (nomeDoProduto.isNotBlank() && quantidade.isNotBlank()) {
-                            val novoItem = nomeDoProduto to quantidade
+                            val novoItem = Pair(nomeDoProduto, quantidade)
+                            // Adicionar ao ViewModel
                             listasViewModel.adicionarItemNaLista(listaNome, novoItem)
+                            // Adicionar à lista local
+                            listaItems.add(novoItem)
+                            // Limpar os campos
                             nomeDoProduto = ""
                             quantidade = ""
                         }
@@ -410,7 +432,6 @@ fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, lista
 
                         Button(
                             onClick = {
-                                // Remove o item
                                 listasViewModel.removerItemDaLista(listaNome, item)
                                 listaItems.removeAt(index)
                             },
@@ -425,7 +446,5 @@ fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, lista
         }
     }
 }
-
-
 
 

@@ -7,10 +7,11 @@ class ListasViewModel : ViewModel() {
     val listas = mutableStateListOf<String>()
     val itensPorLista = mutableMapOf<String, MutableList<Pair<String, String>>>()
 
-    // Adiciona uma nova lista, se não existir
-    fun adicionarLista(nomeDaLista: String) {
+    // Adicionar lista com os itens iniciais
+    fun adicionarLista(nomeDaLista: String, itensIniciais: List<Pair<String, String>> = emptyList()) {
         if (nomeDaLista.isNotBlank() && !listas.contains(nomeDaLista)) {
             listas.add(nomeDaLista)
+            itensPorLista[nomeDaLista] = itensIniciais.toMutableList()
         }
     }
 
