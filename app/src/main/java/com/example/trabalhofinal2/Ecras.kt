@@ -169,6 +169,49 @@ fun Ecra02(navController: NavController, listasViewModel: ListasViewModel) {
     var quantidade by remember { mutableStateOf("") }
     val itens = remember { mutableStateListOf<Pair<String, String>>() }
 
+    val auth = FirebaseAuth.getInstance()
+    val firestore = FirebaseFirestore.getInstance()
+    val userId = auth.currentUser?.uid
+    val userEmail = auth.currentUser?.email ?: "usuario_padrao@gmail.com"
+
+    var shouldSaveList by remember { mutableStateOf(false) }
+
+    LaunchedEffect(shouldSaveList) {
+        if (shouldSaveList && userId != null) {
+            val listaData = hashMapOf(
+                "nomeDaLista" to nomeDaLista,
+                "itens" to itens.map { it.first to it.second }.toMap()
+            )
+
+            // Salvar a lista no documento do usuário autenticado
+            firestore.collection("users").document(userId).collection("listas")
+                .add(listaData)
+                .addOnSuccessListener {
+                    Log.d("Firestore", "Lista adicionada com sucesso")
+                }
+                .addOnFailureListener { e ->
+                    Log.e("Firestore", "Erro ao adicionar a lista: ${e.message}")
+                }
+
+            // Salvar a lista no documento compartilhado
+            firestore.collection("shared_lists").add(
+                mapOf(
+                    "sharedBy" to userEmail,
+                    "lista" to listaData
+                )
+            ).addOnSuccessListener {
+                Log.d("Firestore", "Lista compartilhada adicionada com sucesso")
+            }.addOnFailureListener { e ->
+                Log.e("Firestore", "Erro ao compartilhar a lista: ${e.message}")
+            }
+
+            // Reset state
+            nomeDaLista = ""
+            itens.clear()
+            shouldSaveList = false
+        }
+    }
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
@@ -265,10 +308,7 @@ fun Ecra02(navController: NavController, listasViewModel: ListasViewModel) {
                 Button(
                     onClick = {
                         if (nomeDaLista.isNotBlank() && itens.isNotEmpty()) {
-                            listasViewModel.adicionarLista(nomeDaLista, itens.toList())
-                            listasViewModel.salvarListaFirebase(nomeDaLista, itens.toList())
-                            nomeDaLista = ""
-                            itens.clear()
+                            shouldSaveList = true
                         }
                     }
                 ) {
@@ -323,6 +363,10 @@ fun Ecra02(navController: NavController, listasViewModel: ListasViewModel) {
         }
     }
 }
+
+
+
+
 
 @Composable
 fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, listaNome: String) {
@@ -495,4 +539,3 @@ fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, lista
         }
     }
 }
-
