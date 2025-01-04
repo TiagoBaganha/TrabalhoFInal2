@@ -73,7 +73,10 @@ dependencies {
 
     // Import the Firebase
     implementation(platform("com.google.firebase:firebase-bom:32.7.1"))
+    implementation ("com.google.firebase:firebase-firestore-ktx:24.10.0")
+    implementation ("com.google.firebase:firebase-auth-ktx:22.3.0")
     implementation("com.google.firebase:firebase-analytics")
+    implementation ("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-auth")
 // Also add the dependency for the Google Play services library and specify its version
     implementation("com.google.android.gms:play-services-auth:21.0.0")

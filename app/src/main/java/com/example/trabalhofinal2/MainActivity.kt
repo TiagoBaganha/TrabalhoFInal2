@@ -47,7 +47,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val navController = rememberNavController()
                     val listasViewModel: ListasViewModel = viewModel() // Inicializa o ViewModel.
-                    NavHost(navController = navController, startDestination = "ecra02") {
+                    NavHost(navController = navController, startDestination = "login") {
                         composable("login") {
                             LoginScreen(
                                 onLoginSuccess = {
@@ -333,7 +333,6 @@ fun BottomNavigationBar(navController: NavController, appItems: List<Destino>) {
         }
     }
 }
-
 
 
 
