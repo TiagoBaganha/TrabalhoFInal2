@@ -238,6 +238,7 @@ fun Ecra02(navController: NavController, listasViewModel: ListasViewModel) {
     var nomeDaLista by remember { mutableStateOf("") }
     var nomeDoProduto by remember { mutableStateOf("") }
     var quantidade by remember { mutableStateOf("") }
+    var emailParaCompartilhar by remember { mutableStateOf("") }
     val itens = remember { mutableStateListOf<Pair<String, String>>() }
 
     val auth = FirebaseAuth.getInstance()
@@ -264,7 +265,7 @@ fun Ecra02(navController: NavController, listasViewModel: ListasViewModel) {
                     Log.e("Firestore", "Erro ao adicionar a lista: ${e.message}")
                 }
 
-            // Salvar a lista no documento compartilhado
+            // Salvar a lista no documento compartilhado para o usuário atual
             firestore.collection("shared_lists").add(
                 mapOf(
                     "sharedBy" to userEmail,
@@ -276,8 +277,24 @@ fun Ecra02(navController: NavController, listasViewModel: ListasViewModel) {
                 Log.e("Firestore", "Erro ao compartilhar a lista: ${e.message}")
             }
 
+            // Se um email para compartilhar foi fornecido, compartilhar com esse usuário também
+            if (emailParaCompartilhar.isNotBlank()) {
+                firestore.collection("shared_lists").add(
+                    mapOf(
+                        "sharedBy" to emailParaCompartilhar,
+                        "lista" to listaData,
+                        "originalSharedBy" to userEmail
+                    )
+                ).addOnSuccessListener {
+                    Log.d("Firestore", "Lista compartilhada com outro usuário com sucesso")
+                }.addOnFailureListener { e ->
+                    Log.e("Firestore", "Erro ao compartilhar a lista com outro usuário: ${e.message}")
+                }
+            }
+
             // Reset state
             nomeDaLista = ""
+            emailParaCompartilhar = ""
             itens.clear()
             shouldSaveList = false
         }
@@ -313,6 +330,25 @@ fun Ecra02(navController: NavController, listasViewModel: ListasViewModel) {
                 )
             }
 
+            // Email para Compartilhar
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "Compartilhar com (email):",
+                    fontWeight = FontWeight.Normal,
+                    color = Color.Black,
+                    fontSize = 16.sp
+                )
+                TextField(
+                    value = emailParaCompartilhar,
+                    onValueChange = { emailParaCompartilhar = it },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
 
             // Nome do Produto e Quantidade
@@ -337,7 +373,7 @@ fun Ecra02(navController: NavController, listasViewModel: ListasViewModel) {
                     )
                 }
 
-                Spacer(modifier = Modifier.width(16.dp)) // Espaço entre os campos
+                Spacer(modifier = Modifier.width(16.dp))
 
                 // Quantidade
                 Column(modifier = Modifier.weight(1f)) {
@@ -434,8 +470,6 @@ fun Ecra02(navController: NavController, listasViewModel: ListasViewModel) {
         }
     }
 }
-
-
 
 
 
