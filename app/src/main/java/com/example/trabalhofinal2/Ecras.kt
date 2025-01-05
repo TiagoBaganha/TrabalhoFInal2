@@ -441,15 +441,103 @@ fun Ecra02(navController: NavController, listasViewModel: ListasViewModel) {
 
 @Composable
 fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, listaNome: String) {
-    // Recuperar a lista de itens da lista específica
-    val listaItems = remember {
-        mutableStateListOf<Pair<String, String>>().apply {
-            addAll(listasViewModel.obterItensDaLista(listaNome))
+    val listaItems = remember { mutableStateListOf<Pair<String, String>>() }
+    var nomeDoProduto by remember { mutableStateOf("") }
+    var quantidade by remember { mutableStateOf("") }
+
+    val auth = FirebaseAuth.getInstance()
+    val firestore = FirebaseFirestore.getInstance()
+    val userId = auth.currentUser?.uid
+    val userEmail = auth.currentUser?.email
+
+    LaunchedEffect(userId, listaNome) {
+        if (userId != null) {
+            try {
+                // Primeiro, tenta buscar da coleção de listas compartilhadas
+                firestore.collection("shared_lists")
+                    .whereEqualTo("lista.nomeDaLista", listaNome)
+                    .get()
+                    .addOnSuccessListener { sharedResult ->
+                        if (!sharedResult.isEmpty) {
+                            val document = sharedResult.documents[0]
+                            val lista = document.get("lista") as Map<*, *>
+                            val itens = lista["itens"] as Map<*, *>
+
+                            listaItems.clear()
+                            itens.forEach { (produto, quantidade) ->
+                                listaItems.add(Pair(produto.toString(), quantidade.toString()))
+                            }
+                        } else {
+                            // Se não encontrar nas listas compartilhadas, busca nas listas normais
+                            firestore.collection("users")
+                                .document(userId)
+                                .collection("listas")
+                                .whereEqualTo("nomeDaLista", listaNome)
+                                .get()
+                                .addOnSuccessListener { result ->
+                                    if (!result.isEmpty) {
+                                        val document = result.documents[0]
+                                        val itens = document.get("itens") as Map<*, *>
+
+                                        listaItems.clear()
+                                        itens.forEach { (produto, quantidade) ->
+                                            listaItems.add(Pair(produto.toString(), quantidade.toString()))
+                                        }
+                                    }
+                                }
+                                .addOnFailureListener { e ->
+                                    Log.e("Firestore", "Erro ao buscar lista: ${e.message}")
+                                }
+                        }
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("Firestore", "Erro ao buscar lista compartilhada: ${e.message}")
+                    }
+            } catch (exception: Exception) {
+                Log.e("Firestore", "Erro ao carregar itens: ${exception.message}")
+            }
         }
     }
 
-    var nomeDoProduto by remember { mutableStateOf("") }
-    var quantidade by remember { mutableStateOf("") }
+    // Função para salvar alterações no Firebase
+    fun salvarAlteracoes() {
+        if (userId != null) {
+            val listaData = hashMapOf(
+                "nomeDaLista" to listaNome,
+                "itens" to listaItems.associate { it.first to it.second }
+            )
+
+            // Atualizar nas listas compartilhadas
+            firestore.collection("shared_lists")
+                .whereEqualTo("lista.nomeDaLista", listaNome)
+                .get()
+                .addOnSuccessListener { sharedResult ->
+                    if (!sharedResult.isEmpty) {
+                        val documentId = sharedResult.documents[0].id
+                        firestore.collection("shared_lists")
+                            .document(documentId)
+                            .update("lista", listaData)
+                    } else {
+                        // Se não encontrar nas compartilhadas, atualiza nas listas normais
+                        firestore.collection("users")
+                            .document(userId)
+                            .collection("listas")
+                            .whereEqualTo("nomeDaLista", listaNome)
+                            .get()
+                            .addOnSuccessListener { result ->
+                                if (!result.isEmpty) {
+                                    val documentId = result.documents[0].id
+                                    firestore.collection("users")
+                                        .document(userId)
+                                        .collection("listas")
+                                        .document(documentId)
+                                        .update(listaData as Map<String, Any>)
+                                }
+                            }
+                    }
+                }
+        }
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -485,14 +573,12 @@ fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, lista
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Nome do Produto e Quantidade
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Nome do Produto
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Nome Produto:",
@@ -509,7 +595,6 @@ fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, lista
 
                 Spacer(modifier = Modifier.width(16.dp))
 
-                // Quantidade
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Quantidade:",
@@ -527,7 +612,6 @@ fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, lista
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Botões: Acrescentar Item e Salvar Lista
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -537,12 +621,7 @@ fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, lista
                 Button(
                     onClick = {
                         if (nomeDoProduto.isNotBlank() && quantidade.isNotBlank()) {
-                            val novoItem = Pair(nomeDoProduto, quantidade)
-                            // Adicionar ao ViewModel
-                            listasViewModel.adicionarItemNaLista(listaNome, novoItem)
-                            // Adicionar à lista local
-                            listaItems.add(novoItem)
-                            // Limpar os campos
+                            listaItems.add(Pair(nomeDoProduto, quantidade))
                             nomeDoProduto = ""
                             quantidade = ""
                         }
@@ -553,9 +632,8 @@ fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, lista
 
                 Button(
                     onClick = {
-                        // Atualiza os itens da lista
-                        listasViewModel.atualizarLista(listaNome, listaItems)
-                        navController.popBackStack() // Volta para a tela anterior
+                        salvarAlteracoes()
+                        navController.navigate("ecra01")
                     }
                 ) {
                     Text(text = "Salvar Lista")
@@ -564,7 +642,6 @@ fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, lista
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Exibir itens na lista
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -596,7 +673,6 @@ fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, lista
 
                         Button(
                             onClick = {
-                                listasViewModel.removerItemDaLista(listaNome, item)
                                 listaItems.removeAt(index)
                             },
                             contentPadding = PaddingValues(0.dp),
