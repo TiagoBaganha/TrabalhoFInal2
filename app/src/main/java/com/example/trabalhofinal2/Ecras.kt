@@ -59,10 +59,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.Icon
 import androidx.compose.material.Scaffold
+import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -122,13 +125,37 @@ fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Olá, ${userName.value}",
-                fontWeight = FontWeight.Bold,
-                color = Color.Gray,
-                fontSize = 18.sp,
-                modifier = Modifier.padding(top = 16.dp)
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Olá, ${userName.value}",
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Gray,
+                    fontSize = 18.sp,
+                )
+
+                Button(
+                    onClick = {
+                        auth.signOut()
+                        navController.navigate("login") {
+                            popUpTo(navController.graph.startDestinationId) {
+                                inclusive = true
+                            }
+                        }
+                    }
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.logout),
+                        contentDescription = "Logout",
+                        tint = Color.White
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -158,7 +185,11 @@ fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
                             modifier = Modifier.weight(1f)
                         )
                         Button(onClick = { navController.navigate("ecra03/$lista") }) {
-                            Text(text = "Editar")
+                            Icon(
+                                painter = painterResource(id = R.drawable.edit),
+                                contentDescription = "Edit",
+                                tint = Color.White
+                            )
                         }
                         Button(onClick = {
                             firestore.collection("shared_lists")
@@ -174,7 +205,11 @@ fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
                                     Log.e("Firestore", "Erro ao apagar lista: ${e.message}")
                                 }
                         }) {
-                            Text(text = "Apagar")
+                            Icon(
+                                painter = painterResource(id = R.drawable.delete),
+                                contentDescription = "Delete",
+                                tint = Color.White
+                            )
                         }
                     }
                 }
@@ -337,7 +372,7 @@ fun Ecra02(navController: NavController, listasViewModel: ListasViewModel) {
                     .padding(16.dp)
             ) {
                 Text(
-                    text = "Compartilhar com (email):",
+                    text = "Compartilhar com (opcional):",
                     fontWeight = FontWeight.Normal,
                     color = Color.Black,
                     fontSize = 16.sp
@@ -594,7 +629,11 @@ fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, lista
                     contentPadding = PaddingValues(0.dp),
                     modifier = Modifier.size(40.dp)
                 ) {
-                    Text(text = "←", fontSize = 20.sp)
+                    Icon(
+                        painter = painterResource(id = R.drawable.arrow),
+                        contentDescription = "Seta",
+                        tint = Color.White
+                    )
                 }
             }
         },
