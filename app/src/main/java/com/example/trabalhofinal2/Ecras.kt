@@ -75,6 +75,7 @@ fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
     val firestore = FirebaseFirestore.getInstance()
     val userId = auth.currentUser?.uid
     val userName = remember { mutableStateOf("Usuário") }
+    val sharedLists = remember { mutableStateListOf<String>() }
 
     LaunchedEffect(userId) {
         if (userId != null) {
@@ -87,7 +88,22 @@ fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
                 ).await()
 
                 userName.value = extractedName
-                Log.e("Firestore", "Nome extraído do e-mail e salvo: $extractedName")
+
+                // Buscar listas partilhadas
+                firestore.collection("shared_lists")
+                    .whereEqualTo("sharedBy", userEmail)
+                    .get()
+                    .addOnSuccessListener { result ->
+                        sharedLists.clear()
+                        for (document in result) {
+                            val lista = document.get("lista") as Map<*, *>
+                            sharedLists.add(lista["nomeDaLista"].toString())
+                        }
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("Firestore", "Erro ao buscar listas partilhadas: ${e.message}")
+                    }
+
             } catch (exception: Exception) {
                 Log.e("Firestore", "Erro ao buscar ou salvar o nome do usuário: ${exception.message}")
             }
@@ -116,6 +132,56 @@ fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            Text(
+                text = "Listas Partilhadas:",
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(sharedLists) { lista ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = lista,
+                            fontSize = 16.sp,
+                            color = Color.Black,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Button(onClick = { navController.navigate("ecra03/$lista") }) {
+                            Text(text = "Editar")
+                        }
+                        Button(onClick = {
+                            firestore.collection("shared_lists")
+                                .whereEqualTo("lista.nomeDaLista", lista)
+                                .get()
+                                .addOnSuccessListener { result ->
+                                    for (document in result) {
+                                        firestore.collection("shared_lists").document(document.id).delete()
+                                    }
+                                    sharedLists.remove(lista)
+                                }
+                                .addOnFailureListener { e ->
+                                    Log.e("Firestore", "Erro ao apagar lista: ${e.message}")
+                                }
+                        }) {
+                            Text(text = "Apagar")
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(16.dp),
@@ -138,18 +204,24 @@ fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
                             modifier = Modifier.weight(1f)
                         )
 
-                        Button(
-                            onClick = {
-                                navController.navigate("ecra03/${lista}")
-                            }
-                        ) {
+                        Button(onClick = { navController.navigate("ecra03/${lista}") }) {
                             Text(text = "Editar")
                         }
-                        Button(
-                            onClick = {
-                                listasViewModel.removerLista(lista)
-                            }
-                        ) {
+
+                        Button(onClick = {
+                            firestore.collection("listas")
+                                .whereEqualTo("nomeDaLista", lista)
+                                .get()
+                                .addOnSuccessListener { result ->
+                                    for (document in result) {
+                                        firestore.collection("listas").document(document.id).delete()
+                                    }
+                                    listasViewModel.removerLista(lista)
+                                }
+                                .addOnFailureListener { e ->
+                                    Log.e("Firestore", "Erro ao apagar lista: ${e.message}")
+                                }
+                        }) {
                             Text(text = "X")
                         }
                     }
@@ -158,7 +230,6 @@ fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
         }
     }
 }
-
 
 
 
