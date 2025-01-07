@@ -53,22 +53,37 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.tasks.await
 import android.util.Log
+import androidx.compose.animation.animateContentSize
 
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Icon
 import androidx.compose.material.Scaffold
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
 
 
 @Composable
@@ -78,7 +93,7 @@ fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
     val firestore = FirebaseFirestore.getInstance()
     val userId = auth.currentUser?.uid
     val userName = remember { mutableStateOf("Usuário") }
-    val sharedLists = remember { mutableStateListOf<String>() }
+    val allLists = remember { mutableStateListOf<String>() }
 
     LaunchedEffect(userId) {
         if (userId != null) {
@@ -92,21 +107,16 @@ fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
 
                 userName.value = extractedName
 
-                // Buscar listas partilhadas
-                firestore.collection("shared_lists")
+                val sharedListsSnapshot = firestore.collection("shared_lists")
                     .whereEqualTo("sharedBy", userEmail)
-                    .get()
-                    .addOnSuccessListener { result ->
-                        sharedLists.clear()
-                        for (document in result) {
-                            val lista = document.get("lista") as Map<*, *>
-                            sharedLists.add(lista["nomeDaLista"].toString())
-                        }
-                    }
-                    .addOnFailureListener { e ->
-                        Log.e("Firestore", "Erro ao buscar listas partilhadas: ${e.message}")
-                    }
+                    .get().await()
 
+                allLists.clear()
+                allLists.addAll(listas)
+                sharedListsSnapshot.documents.forEach { document ->
+                    val lista = document.get("lista") as Map<*, *>
+                    allLists.add(lista["nomeDaLista"].toString())
+                }
             } catch (exception: Exception) {
                 Log.e("Firestore", "Erro ao buscar ou salvar o nome do usuário: ${exception.message}")
             }
@@ -116,148 +126,130 @@ fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
     }
 
     Scaffold(
+        topBar = {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shadowElevation = 4.dp
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Olá,",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                        Text(
+                            text = userName.value,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    IconButton(
+                        onClick = {
+                            auth.signOut()
+                            navController.navigate("login") {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    inclusive = true
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
+                                shape = CircleShape
+                            )
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.logout),
+                            contentDescription = "Logout",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
+        },
         bottomBar = { BottomNavigationBar(navController, appItems = Destino.toList) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(paddingValues)
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Olá, ${userName.value}",
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Gray,
-                    fontSize = 18.sp,
-                )
-
-                Button(
-                    onClick = {
-                        auth.signOut()
-                        navController.navigate("login") {
-                            popUpTo(navController.graph.startDestinationId) {
-                                inclusive = true
-                            }
-                        }
-                    }
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.logout),
-                        contentDescription = "Logout",
-                        tint = Color.White
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
             Text(
-                text = "Listas Partilhadas:",
+                text = "Listas",
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
             )
-
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(16.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(sharedLists) { lista ->
-                    Row(
+                items(allLists) { lista ->
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .animateContentSize(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
-                        Text(
-                            text = lista,
-                            fontSize = 16.sp,
-                            color = Color.Black,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Button(onClick = { navController.navigate("ecra03/$lista") }) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.edit),
-                                contentDescription = "Edit",
-                                tint = Color.White
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = lista,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.weight(1f)
                             )
-                        }
-                        Button(onClick = {
-                            firestore.collection("shared_lists")
-                                .whereEqualTo("lista.nomeDaLista", lista)
-                                .get()
-                                .addOnSuccessListener { result ->
-                                    for (document in result) {
-                                        firestore.collection("shared_lists").document(document.id).delete()
+                            Row(
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                IconButton(
+                                    onClick = { navController.navigate("ecra03/$lista") }
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.edit),
+                                        contentDescription = "Editar",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                IconButton(
+                                    onClick = {
+                                        firestore.collection("shared_lists")
+                                            .whereEqualTo("lista.nomeDaLista", lista)
+                                            .get()
+                                            .addOnSuccessListener { result ->
+                                                for (document in result) {
+                                                    firestore.collection("shared_lists")
+                                                        .document(document.id)
+                                                        .delete()
+                                                }
+                                                allLists.remove(lista)
+                                            }
                                     }
-                                    sharedLists.remove(lista)
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.delete),
+                                        contentDescription = "Excluir",
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
                                 }
-                                .addOnFailureListener { e ->
-                                    Log.e("Firestore", "Erro ao apagar lista: ${e.message}")
-                                }
-                        }) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.delete),
-                                contentDescription = "Delete",
-                                tint = Color.White
-                            )
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(listas) { lista ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color.LightGray)
-                            .padding(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = lista,
-                            fontWeight = FontWeight.Normal,
-                            fontSize = 16.sp,
-                            color = Color.Black,
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        Button(onClick = { navController.navigate("ecra03/${lista}") }) {
-                            Text(text = "Editar")
-                        }
-
-                        Button(onClick = {
-                            firestore.collection("listas")
-                                .whereEqualTo("nomeDaLista", lista)
-                                .get()
-                                .addOnSuccessListener { result ->
-                                    for (document in result) {
-                                        firestore.collection("listas").document(document.id).delete()
-                                    }
-                                    listasViewModel.removerLista(lista)
-                                }
-                                .addOnFailureListener { e ->
-                                    Log.e("Firestore", "Erro ao apagar lista: ${e.message}")
-                                }
-                        }) {
-                            Text(text = "X")
+                            }
                         }
                     }
                 }
@@ -268,6 +260,8 @@ fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
 
 
 
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Ecra02(navController: NavController, listasViewModel: ListasViewModel) {
     var nomeDaLista by remember { mutableStateOf("") }
@@ -275,6 +269,7 @@ fun Ecra02(navController: NavController, listasViewModel: ListasViewModel) {
     var quantidade by remember { mutableStateOf("") }
     var emailParaCompartilhar by remember { mutableStateOf("") }
     val itens = remember { mutableStateListOf<Pair<String, String>>() }
+    var isLoading by remember { mutableStateOf(false) }
 
     val auth = FirebaseAuth.getInstance()
     val firestore = FirebaseFirestore.getInstance()
@@ -331,175 +326,225 @@ fun Ecra02(navController: NavController, listasViewModel: ListasViewModel) {
             nomeDaLista = ""
             emailParaCompartilhar = ""
             itens.clear()
+            navController.navigate("ecra01")
             shouldSaveList = false
         }
     }
 
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        bottomBar = {
-            BottomNavigationBar(navController, appItems = Destino.toList)
-        }
+        topBar = {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shadowElevation = 4.dp
+            ) {
+                TopAppBar(
+                    title = {
+                        Text(
+                            "Criar Nova Lista",
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                )
+            }
+        },
+        bottomBar = { BottomNavigationBar(navController, appItems = Destino.toList) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
         ) {
-            // Nome da Lista
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = "Nome da Lista:",
-                    fontWeight = FontWeight.Normal,
-                    color = Color.Black,
-                    fontSize = 16.sp
-                )
-                TextField(
-                    value = nomeDaLista,
-                    onValueChange = { nomeDaLista = it },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            // Email para Compartilhar
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = "Compartilhar com (opcional):",
-                    fontWeight = FontWeight.Normal,
-                    color = Color.Black,
-                    fontSize = 16.sp
-                )
-                TextField(
-                    value = emailParaCompartilhar,
-                    onValueChange = { emailParaCompartilhar = it },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Nome do Produto e Quantidade
-            Row(
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                // Nome do Produto
-                Column(modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Nome Produto:",
-                        fontWeight = FontWeight.Normal,
-                        color = Color.Black,
-                        fontSize = 16.sp
+                        text = "Nome da Lista",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
                     )
-                    TextField(
-                        value = nomeDoProduto,
-                        onValueChange = { nomeDoProduto = it },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                // Quantidade
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Quantidade:",
-                        fontWeight = FontWeight.Normal,
-                        color = Color.Black,
-                        fontSize = 16.sp
-                    )
-                    TextField(
-                        value = quantidade,
-                        onValueChange = { quantidade = it },
-                        modifier = Modifier.fillMaxWidth()
+                    OutlinedTextField(
+                        value = nomeDaLista,
+                        onValueChange = { nomeDaLista = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        placeholder = { Text("Digite o nome da lista") }
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Compartilhar com (opcional)",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    OutlinedTextField(
+                        value = emailParaCompartilhar,
+                        onValueChange = { emailParaCompartilhar = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        placeholder = { Text("Digite o email para compartilhar") },
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(id = R.drawable.email),
+                                contentDescription = "Email",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    )
+                }
+            }
 
-            // Botões: Acrescentar Item e Acrescentar Lista
-            Row(
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Button(
-                    onClick = {
-                        if (nomeDoProduto.isNotBlank() && quantidade.isNotBlank()) {
-                            itens.add(nomeDoProduto to quantidade)
-                            nomeDoProduto = ""
-                            quantidade = ""
-                        }
-                    }
-                ) {
-                    Text(text = "Acrescentar Item")
-                }
-
-                Button(
-                    onClick = {
-                        if (nomeDaLista.isNotBlank() && itens.isNotEmpty()) {
-                            shouldSaveList = true
-                        }
-                    }
-                ) {
-                    Text(text = "Acrescentar Lista")
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Exibir itens na lista
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = "Itens na Lista:",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = Color.Black
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                itens.forEachIndexed { index, item ->
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Adicionar Item",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = "${item.first} - ${item.second}",
-                            fontSize = 16.sp,
-                            color = Color.Black,
-                            modifier = Modifier.weight(1f)
+                        OutlinedTextField(
+                            value = nomeDoProduto,
+                            onValueChange = { nomeDoProduto = it },
+                            modifier = Modifier.weight(1.5f),
+                            shape = RoundedCornerShape(12.dp),
+                            placeholder = { Text("Nome do produto") }
                         )
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Button(
-                            onClick = {
-                                itens.removeAt(index)
-                            },
-                            contentPadding = PaddingValues(0.dp),
+                        OutlinedTextField(
+                            value = quantidade,
+                            onValueChange = { quantidade = it },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            placeholder = { Text("Qtd") }
+                        )
+                    }
+                    Button(
+                        onClick = {
+                            if (nomeDoProduto.isNotBlank() && quantidade.isNotBlank()) {
+                                itens.add(nomeDoProduto to quantidade)
+                                nomeDoProduto = ""
+                                quantidade = ""
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.add),
+                            contentDescription = "Adicionar",
                             modifier = Modifier.size(24.dp)
-                        ) {
-                            Text(text = "X", color = Color.White)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Adicionar Item")
+                    }
+                }
+            }
+
+            if (itens.isNotEmpty()) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Itens na Lista",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        itens.forEachIndexed { index, item ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "${item.first} - ${item.second}",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(
+                                    onClick = { itens.removeAt(index) }
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.delete),
+                                        contentDescription = "Remover",
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                            if (index < itens.size - 1) {
+                                Divider(modifier = Modifier.padding(vertical = 4.dp))
+                            }
                         }
                     }
+                }
+            }
+
+            Button(
+                onClick = {
+                    if (nomeDaLista.isNotBlank() && itens.isNotEmpty()) {
+                        shouldSaveList = true
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                enabled = !isLoading && nomeDaLista.isNotBlank() && itens.isNotEmpty()
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(id = R.drawable.save),
+                        contentDescription = "Salvar",
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Salvar Lista",
+                        style = MaterialTheme.typography.titleMedium
+                    )
                 }
             }
         }
@@ -508,11 +553,13 @@ fun Ecra02(navController: NavController, listasViewModel: ListasViewModel) {
 
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, listaNome: String) {
     val listaItems = remember { mutableStateListOf<Pair<String, String>>() }
     var nomeDoProduto by remember { mutableStateOf("") }
     var quantidade by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
 
     val auth = FirebaseAuth.getInstance()
     val firestore = FirebaseFirestore.getInstance()
@@ -522,7 +569,6 @@ fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, lista
     LaunchedEffect(userId, listaNome) {
         if (userId != null) {
             try {
-                // Primeiro, tenta buscar da coleção de listas compartilhadas
                 firestore.collection("shared_lists")
                     .whereEqualTo("lista.nomeDaLista", listaNome)
                     .get()
@@ -537,7 +583,6 @@ fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, lista
                                 listaItems.add(Pair(produto.toString(), quantidade.toString()))
                             }
                         } else {
-                            // Se não encontrar nas listas compartilhadas, busca nas listas normais
                             firestore.collection("users")
                                 .document(userId)
                                 .collection("listas")
@@ -568,15 +613,14 @@ fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, lista
         }
     }
 
-    // Função para salvar alterações no Firebase
     fun salvarAlteracoes() {
         if (userId != null) {
+            isLoading = true
             val listaData = hashMapOf(
                 "nomeDaLista" to listaNome,
                 "itens" to listaItems.associate { it.first to it.second }
             )
 
-            // Atualizar nas listas compartilhadas
             firestore.collection("shared_lists")
                 .whereEqualTo("lista.nomeDaLista", listaNome)
                 .get()
@@ -586,8 +630,14 @@ fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, lista
                         firestore.collection("shared_lists")
                             .document(documentId)
                             .update("lista", listaData)
+                            .addOnSuccessListener {
+                                isLoading = false
+                                navController.navigate("ecra01")
+                            }
+                            .addOnFailureListener {
+                                isLoading = false
+                            }
                     } else {
-                        // Se não encontrar nas compartilhadas, atualiza nas listas normais
                         firestore.collection("users")
                             .document(userId)
                             .collection("listas")
@@ -601,6 +651,13 @@ fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, lista
                                         .collection("listas")
                                         .document(documentId)
                                         .update(listaData as Map<String, Any>)
+                                        .addOnSuccessListener {
+                                            isLoading = false
+                                            navController.navigate("ecra01")
+                                        }
+                                        .addOnFailureListener {
+                                            isLoading = false
+                                        }
                                 }
                             }
                     }
@@ -609,32 +666,22 @@ fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, lista
     }
 
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
         topBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shadowElevation = 4.dp
             ) {
-                Text(
-                    text = "Editar Lista: $listaNome",
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black,
-                    fontSize = 18.sp
-                )
-                Button(
-                    onClick = { navController.navigate("ecra01") },
-                    contentPadding = PaddingValues(0.dp),
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.arrow),
-                        contentDescription = "Seta",
-                        tint = Color.White
+                TopAppBar(
+                    title = {
+                        Text(
+                            "Editar Lista: $listaNome",
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
                     )
-                }
+                )
             }
         },
         bottomBar = { BottomNavigationBar(navController, appItems = Destino.toList) }
@@ -643,117 +690,139 @@ fun Ecra03(navController: NavController, listasViewModel: ListasViewModel, lista
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
+            // Adicionar Item
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Nome Produto:",
-                        fontWeight = FontWeight.Normal,
-                        color = Color.Black,
-                        fontSize = 16.sp
+                        text = "Adicionar Item",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
                     )
-                    TextField(
-                        value = nomeDoProduto,
-                        onValueChange = { nomeDoProduto = it },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Quantidade:",
-                        fontWeight = FontWeight.Normal,
-                        color = Color.Black,
-                        fontSize = 16.sp
-                    )
-                    TextField(
-                        value = quantidade,
-                        onValueChange = { quantidade = it },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = nomeDoProduto,
+                            onValueChange = { nomeDoProduto = it },
+                            modifier = Modifier.weight(1.5f),
+                            shape = RoundedCornerShape(12.dp),
+                            placeholder = { Text("Nome do produto") }
+                        )
+                        OutlinedTextField(
+                            value = quantidade,
+                            onValueChange = { quantidade = it },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            placeholder = { Text("Qtd") }
+                        )
+                    }
+                    Button(
+                        onClick = {
+                            if (nomeDoProduto.isNotBlank() && quantidade.isNotBlank()) {
+                                listaItems.add(nomeDoProduto to quantidade)
+                                nomeDoProduto = ""
+                                quantidade = ""
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.add),
+                            contentDescription = "Adicionar",
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Adicionar Item")
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                Button(
-                    onClick = {
-                        if (nomeDoProduto.isNotBlank() && quantidade.isNotBlank()) {
-                            listaItems.add(Pair(nomeDoProduto, quantidade))
-                            nomeDoProduto = ""
-                            quantidade = ""
+            // Lista de Itens
+            if (listaItems.isNotEmpty()) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Itens na Lista",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        listaItems.forEachIndexed { index, item ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "${item.first} - ${item.second}",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(
+                                    onClick = { listaItems.removeAt(index) }
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.delete),
+                                        contentDescription = "Remover",
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                            if (index < listaItems.size - 1) {
+                                Divider(modifier = Modifier.padding(vertical = 4.dp))
+                            }
                         }
                     }
-                ) {
-                    Text(text = "Acrescentar Item")
-                }
-
-                Button(
-                    onClick = {
-                        salvarAlteracoes()
-                        navController.navigate("ecra01")
-                    }
-                ) {
-                    Text(text = "Salvar Lista")
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Column(
+            // Botão Salvar Lista
+            Button(
+                onClick = { salvarAlteracoes() },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                enabled = !isLoading && listaItems.isNotEmpty()
             ) {
-                Text(
-                    text = "Itens na Lista:",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = Color.Black
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                listaItems.forEachIndexed { index, item ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "${item.first} - ${item.second}",
-                            fontSize = 16.sp,
-                            color = Color.Black,
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Button(
-                            onClick = {
-                                listaItems.removeAt(index)
-                            },
-                            contentPadding = PaddingValues(0.dp),
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Text(text = "X", color = Color.White)
-                        }
-                    }
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(id = R.drawable.save),
+                        contentDescription = "Salvar",
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Salvar Lista",
+                        style = MaterialTheme.typography.titleMedium
+                    )
                 }
             }
         }
