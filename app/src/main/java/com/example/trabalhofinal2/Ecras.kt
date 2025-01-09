@@ -67,7 +67,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Icon
 import androidx.compose.material.Scaffold
 import androidx.compose.material.icons.Icons
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -94,6 +96,7 @@ fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
     val userId = auth.currentUser?.uid
     val userName = remember { mutableStateOf("Usuário") }
     val allLists = remember { mutableStateListOf<String>() }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
 
     LaunchedEffect(userId) {
         if (userId != null) {
@@ -125,6 +128,55 @@ fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
         }
     }
 
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text("Confirmar Exclusão") },
+            text = { Text("Tem certeza que deseja excluir sua conta? Esta ação não pode ser desfeita.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val user = auth.currentUser
+                        user?.let { currentUser ->
+                            // Delete user data from Firestore
+                            userId?.let { uid ->
+                                firestore.collection("users").document(uid)
+                                    .delete()
+                                    .addOnCompleteListener { firestoreTask ->
+                                        if (firestoreTask.isSuccessful) {
+                                            // After deleting data, delete the account
+                                            currentUser.delete()
+                                                .addOnCompleteListener { authTask ->
+                                                    if (authTask.isSuccessful) {
+                                                        navController.navigate("login") {
+                                                            popUpTo(navController.graph.startDestinationId) {
+                                                                inclusive = true
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                        }
+                                    }
+                            }
+                        }
+                        showDeleteConfirmation = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Excluir")
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showDeleteConfirmation = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             Surface(
@@ -152,27 +204,50 @@ fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
                         )
                     }
 
-                    IconButton(
-                        onClick = {
-                            auth.signOut()
-                            navController.navigate("login") {
-                                popUpTo(navController.graph.startDestinationId) {
-                                    inclusive = true
-                                }
-                            }
-                        },
-                        modifier = Modifier
-                            .size(48.dp)
-                            .background(
-                                color = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
-                                shape = CircleShape
-                            )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.logout),
-                            contentDescription = "Logout",
-                            tint = MaterialTheme.colorScheme.error
-                        )
+                        // Delete Account Button
+                        IconButton(
+                            onClick = { showDeleteConfirmation = true },
+                            modifier = Modifier
+                                .size(48.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
+                                    shape = CircleShape
+                                )
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.delete),
+                                contentDescription = "Excluir Conta",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+
+                        // Logout Button
+                        IconButton(
+                            onClick = {
+                                auth.signOut()
+                                navController.navigate("login") {
+                                    popUpTo(navController.graph.startDestinationId) {
+                                        inclusive = true
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .size(48.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
+                                    shape = CircleShape
+                                )
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.logout),
+                                contentDescription = "Logout",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
                     }
                 }
             }
