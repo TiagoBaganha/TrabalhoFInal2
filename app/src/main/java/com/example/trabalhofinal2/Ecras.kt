@@ -95,7 +95,7 @@ fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
     val firestore = FirebaseFirestore.getInstance()
     val userId = auth.currentUser?.uid
     val userName = remember { mutableStateOf("Usuário") }
-    val allLists = remember { mutableStateListOf<String>() }
+    val allLists = remember { mutableStateListOf<Triple<String, String?, String?>>() } // Lista, SharedWith, SharedBy
     var showDeleteConfirmation by remember { mutableStateOf(false) }
 
     LaunchedEffect(userId) {
@@ -111,14 +111,31 @@ fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
                 userName.value = extractedName
 
                 val sharedListsSnapshot = firestore.collection("shared_lists")
-                    .whereEqualTo("sharedBy", userEmail)
                     .get().await()
 
                 allLists.clear()
-                allLists.addAll(listas)
+
+                // Adicionar listas do usuário atual
+                listas.forEach { lista ->
+                    allLists.add(Triple(lista, null, userEmail))
+                }
+
+                // Adicionar listas compartilhadas
                 sharedListsSnapshot.documents.forEach { document ->
                     val lista = document.get("lista") as Map<*, *>
-                    allLists.add(lista["nomeDaLista"].toString())
+                    val sharedBy = document.getString("sharedBy")
+                    val originalSharedBy = document.getString("originalSharedBy")
+
+                    // Só adiciona a lista se for compartilhada com o usuário atual ou se foi compartilhada pelo usuário atual
+                    if (sharedBy == userEmail || originalSharedBy == userEmail) {
+                        val listaNome = lista["nomeDaLista"].toString()
+                        val sharedWith = if (originalSharedBy == userEmail) sharedBy else originalSharedBy
+
+                        // Verifica se a lista já existe antes de adicionar
+                        if (!allLists.any { it.first == listaNome }) {
+                            allLists.add(Triple(listaNome, sharedWith?.substringBefore("@"), sharedBy?.substringBefore("@")))
+                        }
+                    }
                 }
             } catch (exception: Exception) {
                 Log.e("Firestore", "Erro ao buscar ou salvar o nome do usuário: ${exception.message}")
@@ -138,13 +155,11 @@ fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
                     onClick = {
                         val user = auth.currentUser
                         user?.let { currentUser ->
-                            // Delete user data from Firestore
                             userId?.let { uid ->
                                 firestore.collection("users").document(uid)
                                     .delete()
                                     .addOnCompleteListener { firestoreTask ->
                                         if (firestoreTask.isSuccessful) {
-                                            // After deleting data, delete the account
                                             currentUser.delete()
                                                 .addOnCompleteListener { authTask ->
                                                     if (authTask.isSuccessful) {
@@ -208,7 +223,6 @@ fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Delete Account Button
                         IconButton(
                             onClick = { showDeleteConfirmation = true },
                             modifier = Modifier
@@ -225,7 +239,6 @@ fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
                             )
                         }
 
-                        // Logout Button
                         IconButton(
                             onClick = {
                                 auth.signOut()
@@ -271,58 +284,72 @@ fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(allLists) { lista ->
+                items(allLists) { listaInfo ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .animateContentSize(),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
-                        Row(
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                                .padding(12.dp)
                         ) {
-                            Text(
-                                text = lista,
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.weight(1f)
-                            )
                             Row(
-                                horizontalArrangement = Arrangement.End,
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                IconButton(
-                                    onClick = { navController.navigate("ecra03/$lista") }
+                                Column(
+                                    modifier = Modifier.weight(1f)
                                 ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.edit),
-                                        contentDescription = "Editar",
-                                        tint = MaterialTheme.colorScheme.primary
+                                    Text(
+                                        text = listaInfo.first,
+                                        style = MaterialTheme.typography.bodyLarge
                                     )
-                                }
-                                IconButton(
-                                    onClick = {
-                                        firestore.collection("shared_lists")
-                                            .whereEqualTo("lista.nomeDaLista", lista)
-                                            .get()
-                                            .addOnSuccessListener { result ->
-                                                for (document in result) {
-                                                    firestore.collection("shared_lists")
-                                                        .document(document.id)
-                                                        .delete()
-                                                }
-                                                allLists.remove(lista)
-                                            }
+                                    listaInfo.second?.let { sharedWith ->
+                                        Text(
+                                            text = "Compartilhada com: $sharedWith",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
                                     }
+                                }
+                                Row(
+                                    horizontalArrangement = Arrangement.End,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.delete),
-                                        contentDescription = "Excluir",
-                                        tint = MaterialTheme.colorScheme.error
-                                    )
+                                    IconButton(
+                                        onClick = { navController.navigate("ecra03/${listaInfo.first}") }
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.edit),
+                                            contentDescription = "Editar",
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = {
+                                            firestore.collection("shared_lists")
+                                                .whereEqualTo("lista.nomeDaLista", listaInfo.first)
+                                                .get()
+                                                .addOnSuccessListener { result ->
+                                                    for (document in result) {
+                                                        firestore.collection("shared_lists")
+                                                            .document(document.id)
+                                                            .delete()
+                                                    }
+                                                    allLists.remove(listaInfo)
+                                                }
+                                        }
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.delete),
+                                            contentDescription = "Excluir",
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -332,8 +359,6 @@ fun Ecra01(navController: NavController, listasViewModel: ListasViewModel) {
         }
     }
 }
-
-
 
 
 @OptIn(ExperimentalMaterial3Api::class)
