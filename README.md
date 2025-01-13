@@ -25,6 +25,9 @@ Este projeto tem como objetivo compartilhar listas entre duas pessoas, onde cada
 - Jetpack Compose
 - Firebase (Auth e Firestore)
 
+## Melhorias
+- Ter um ecrã para ter o perfil do utilizador para implementar as funcionalidades que estão no ecra01 como apagar a conta e sair da conta.
+- Conseguir partilhar entre dois ou mais utilizadores.
 
 
 
